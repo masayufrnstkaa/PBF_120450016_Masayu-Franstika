@@ -1,110 +1,153 @@
-import math
+import numpy as np
 import random
-lamda1 = 1.148698355 
-lamda2 = 0.8705505633 
 
-#Menghitung goal yang dicetak oleh tim tuan rumah
-def tuanRumah(homeRating,awayRating):
-    global lamda1
-    global x
-    global y
-    if x == y:
-        raise ValueError
-    else:
-        lamb = lamda1**(int(homeRating)-int(awayRating))
-        homeScore = 0
-        z = random.random()    
-        while z > 0:
-            z = z - ((lamb**homeScore * math.exp(lamb * -1))/(math.factorial(homeScore)))
-            homeScore += 1
-        return (homeScore-1)
+skill_tim_A = {'save': 81, 'tackle1': 79, 'passing': 78, 'tackle2':60, 'dribble1': 76, 'dribble2': 80, 'intercepts':85, 'shoot': 92}
+skill_tim_B = {'save': 86, 'tackle1': 80, 'passing': 81, 'tackle2':70, 'dribble1': 70, 'dribble2': 81, 'intercepts':86, 'shoot': 90}
+mentality_A = {'GK':80, 'DF':79, 'MD':78, 'ATK':77}
+mentality_B = {'GK':77,'DF':78, 'MD':79, 'ATK':80}
+supporter_A = 100000
+Supporter_B = 115000
+b = 0
+a = 0
+t = 90
 
-#Menghitung goal yang dicetak oleh tim lawan
-def timLawan(homeRating,awayRating):
-    global lamda2
-    global x
-    global y
-    #Pengecekan untuk menghentikan pemain
-    if x == y:
-        raise ValueError
-    else:
-        lamb = lamda2**(int(homeRating)-int(awayRating))
-        awayScore = 0
-        z = random.random()    
-        while z > 0:
-            z = z - ((lamb**awayScore * math.exp(lamb * -1))/(math.factorial(awayScore)))
-            awayScore += 1
-        return (awayScore-1)
+curr = "A"
+def cek_skill(skill, mentality):
+    def alpha(mentality):
+        return np.random.uniform(0,0.025) * (mentality/100)
+    def beta():
+        return np.random.uniform(0,0.025) * (supporter_A/(supporter_A+Supporter_B))
+    return skill*(1-(alpha(mentality)+beta()))
 
-leagueSize = int(input("Masukan Jumlah Tim Dalam Liga : "))
+def md_(x,y):
+    return cek_skill(x,y)
 
-#Inisialisasi Array Tim Dalam Liga
-namatim = []
-skill = []
-point_tim = []
-teamFor = []
-perlawanan = []
-kemenangan = []
-seri = []
-kekalahan = []
+def atk_(x,y):
+    return cek_skill(x,y)
 
-for x in range(leagueSize):
-    point_tim += [0]
-    teamFor += [0]
-    perlawanan += [0]
-    kemenangan += [0]
-    seri += [0]
-    kekalahan += [0]
+def gk_(x,y):
+    return cek_skill(x,y)
 
-#Memasukan nama  tim dan peringkat
-for i in range(leagueSize):
-    namatim += [input("Tim  : " +str(i+1)+" Nama Tim: ")]
-for j in range(leagueSize):
-    skill += [input("Nama Tim : " +namatim[j]+ " Peringkat : ")]
+def df_(x,y):
+    return cek_skill(x,y)
 
-#Inisialisasi Variabel
-homeScore = 0
-awayScore = 0
+def mulai():
+    fieldMid()
 
-for x in range(leagueSize):
-    print(namatim[x] + " Pertandingan Kandang : ")
-    print("------------------------------------------\n")
-    for y in range(leagueSize):
-        error = 0
-        try:
-            homeScore = tuanRumah(skill[x],skill[y])
-        except ValueError:
-            pass
-            error += 1
-        try:
-            awayScore = timLawan(skill[x],skill[y])
-        except ValueError:
-            pass
-        if error == 0:
-            #Update List
-            print(namatim[x],homeScore,"-",awayScore,namatim[y],"\n")
-            teamFor[x] += homeScore
-            teamFor[y] += awayScore
-            perlawanan[x] += awayScore
-            perlawanan[y] += homeScore
-            if homeScore > awayScore:
-                kemenangan[x] += 1
-                kekalahan[y] += 1
-                point_tim[x] += 3
-            elif homeScore == awayScore:
-                seri[x] += 1
-                seri[y] += 1
-                point_tim[x] += 1
-                point_tim[y] += 1
+def hasil():
+    global a, b
+    return print(f'skor sementara :  {a} - {b}')
+
+def stopBreak(x):
+    x = 0
+    return x
+def hasil_final():
+    global a,b
+    return print(f'skor akhir {a} - {b}')
+    
+def fieldMid():
+    global t, curr
+    if t >= 0:
+        if curr == "A":
+            if md_(skill_tim_A.get('dribble1'), mentality_A.get('MD')) > md_(skill_tim_B.get('tackle2'), mentality_B.get('MD')):
+                t -= 1
+                print('Bola dipassing ke striker tim A')
+                print(f'waktu  tersisa {t} menit')
+                curr = "A"
             else:
-                kemenangan[y] += 1
-                kekalahan[x] += 1
-                point_tim[y] += 3
+                t -= 2
+                print('Bola diambil oleh striker tim B')
+                print(f'waktu  tersisa {t} menit')
+                curr = "B"
         else:
-            pass
+            if md_(skill_tim_B.get('dribble1'), mentality_B.get('MD')) > md_(skill_tim_A.get('tackle2'), mentality_A.get('MD')):
+                t -= 1
+                print('Bola passing ke striker tim B')
+                print(f'waktu  tersisa {t} menit')
+                curr = "B"
+            else:
+                t -= 2
+                print('Bola direbut oleh striker tim A')
+                print(f'waktu  tersisa {t} menit')
+                curr = "A"
+        fieldAtk()
+    else:
+        stopBreak(t)
+            
+def fieldAtk():
+    global t, curr, a, b
+    if t >= 0:
+        if curr == "B":
+            if atk_(skill_tim_B.get('dribble2'),mentality_B.get('ATK')) > df_(skill_tim_A.get('tackle1'),mentality_A.get('DF')):
+                print('striker tim B akan melakukan shooting')
+                print(f'waktu  tersisa {t} menit')
+                t -= 1
+                if atk_(skill_tim_B.get('shoot'),mentality_B.get('ATK')) > gk_(skill_tim_A.get('save'),mentality_A.get('GK')):
+                    t -= 2
+                    print('GOALLLLL!!!!')
+                    print(f'waktu tersisa {t} menit')
+                    b += 1
+                    hasil()
+                    fieldMid()
+                    curr = "B"
+                else:
+                    t -= 3
+                    print('sayang sekali bung, bola tidak memasuki gawang')
+                    print(f'waktu  tersisa {t} menit')
+                    curr = "A"
+            else:
+                t -= 2
+                print('Bola direbut oleh bek dari tim A')
+                print(f'waktu  tersisa {t} menit')
+                curr = "A"
+        else:
+            if atk_(skill_tim_A.get('dribble2'),mentality_A.get('ATK')) > df_(skill_tim_B.get('tackle1'),mentality_B.get('DF')):
+                t -= 1
+                print('striker tim A akan melakukan shooting')
+                print(f'waktu  tersisa {t} menit')
+                if atk_(skill_tim_A.get('shoot'),mentality_A.get('ATK')) > gk_(skill_tim_B.get('save'),mentality_B.get('GK')):
+                    t -= 2
+                    print('GOALLLLL!!!!')
+                    print(f'waktu  tersisa {t} menit')
+                    a += 1
+                    hasil()
+                    fieldMid()
+                    curr = "A"
+                else:
+                    t -= 3
+                    print('sayang sekali bung, bola tidak memasuki gawang')
+                    print(f'waktu tersisa {t} menit')
+                    curr = "B"
+            else:
+                t -= 2
+                print('Bola direbut oleh bek dari tim B')
+                print(f'waktu tersisa {t} menit')
+                curr = "B"
+        fieldDf()
+    else:
+        stopBreak(t)
 
-print("Hasil Akhir : ")
-for x in range(leagueSize):
-    print(namatim[x]+(15-len(namatim[x]))*" "+" Peringkat : "+str(skill[x])+(5-len(str(skill[x])))*" "+" Point: "+str(point_tim[x])+(5-len(str(point_tim[x])))*" "+" For: "+str(teamFor[x])+(5-len(str(teamFor[x])))*" "+" Perlawanan: "+str(perlawanan[x])+(5-len(str(point_tim[x])))*" "+"Selisih Gol: "+str(teamFor[x]-perlawanan[x])+(5-len(str(teamFor[x]-perlawanan[x])))*" "+" Menang : "+str(kemenangan[x])+(5-len(str(kemenangan[x])))*" "+" Seri : "+str(seri[x])+(5-len(str(seri[x])))*" "+" Kalah : "+str(kekalahan[x])+(5-len(str(kekalahan[x])))*" ")
-point_tim.sort()
-print(point_tim)
+def fieldDf():
+    global curr, t
+    if t >= 0:
+        if curr == "B":
+            if df_(skill_tim_B.get('passing'), mentality_B.get('DF')) > atk_(skill_tim_A.get('intercepts'),  mentality_A.get('ATK')):
+                t -= 2
+                print('Bola passing ke pemain gelandang B')
+                fieldMid()
+            else:
+                t -= 1
+                print('Bola direbut oleh striker tim A')
+                fieldAtk()
+        else:
+            if df_(skill_tim_A.get('passing'), mentality_A.get('DF')) > atk_(skill_tim_B.get('intercepts'),  mentality_B.get('ATK')):
+                t -= 2
+                print('Bola dioper ke pemain gelandang A')
+                fieldMid()
+            else:
+                t -= 1
+                print('Bola direbut oleh striker tim B')
+                fieldAtk() 
+    else:
+        stopBreak(t)
+mulai()
